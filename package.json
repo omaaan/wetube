@@ -8,7 +8,7 @@
     "url": "git+https://github.com/omaaan/wetube.git"
   },
   "scripts": {
-    "dev": "nodemon -L --exec babel-node src/server.js"
+    "dev": "nodemon -L --exec babel-node src/init.js"
   },
   "author": "Omaaan",
   "license": "MIT",
@@ -18,11 +18,12 @@
   "homepage": "https://github.com/omaaan/wetube#readme",
   "dependencies": {
     "express": "^4.17.3",
+    "mongoose": "^6.2.9",
     "morgan": "^1.10.0",
     "pug": "^3.0.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.17.7",
+    "@babel/core": "^7.17.8",
     "@babel/node": "^7.16.8",
     "@babel/preset-env": "^7.16.11",
     "nodemon": "^2.0.15"
