@@ -1,0 +1,22 @@
+.social-login {
+  border-top: 1px solid rgba($color: #ffffff, $alpha: 0.3);
+  margin-top: 50px;
+  padding-top: 30px;
+}
+
+.social-login__kakaobtn {
+  background-color: rgba($color: #f7d501, $alpha: 1);
+  color: rgba($color: #ffffff, $alpha: 0.9);
+  margin-top: -10px;
+}
+.social-login__gitbtn {
+  background-color: #17a34a;
+  color: rgba($color: #ffffff, $alpha: 0.9);
+}
+.auth__switch {
+  margin-top: 20px;
+  text-align: center;
+  a {
+    text-decoration: underline;
+  }
+}

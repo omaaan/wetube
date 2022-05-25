@@ -1,0 +1,18 @@
+.editprofile__data {
+  input {
+    height: 25px;
+  }
+  label {
+    margin-bottom: 10px;
+    display: block;
+  }
+  input[type="submit"] {
+    font-size: 17px;
+    font-weight: 700;
+  }
+}
+.editporfile__img {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 50px;
+}

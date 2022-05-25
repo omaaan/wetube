@@ -2,6 +2,8 @@ import User from "../models/User";
 import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 import { redirect } from "express/lib/response";
+import { token } from "morgan";
+import Video from "../models/Video";
 
 export const getJoin = (req, res) => {
   return res.render("join", { pageTitle: "Join" });
@@ -76,22 +78,50 @@ export const startKakaoLogin = (req, res) => {
 export const finishKakaoLogin = async (req, res) => {
   const baseUrl = "https://kauth.kakao.com/oauth/token";
   const config = {
-    grant_type: authorization_code,
+    grant_type: "authorization_code",
     client_id: process.env.KA_CLIENT,
     redirect_uri: process.env.KA_URI,
     code: req.query.code,
   };
   const params = new URLSearchParams(config).toString();
   const finalUrl = `${baseUrl}?${params}`;
-  const data = await fetch(finalUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-  });
-  const json = await data.json();
-  console.log(json);
-  res.send(JSON.stringify(json));
+  const tokenRequest = await (
+    await fetch(finalUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    })
+  ).json();
+  if ("access_token" in tokenRequest) {
+    const { access_token } = tokenRequest;
+    const apiUrl = "https://kapi.kakao.com/v2/user/me";
+    const userData = await (
+      await fetch(`${apiUrl}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      })
+    ).json();
+    let user = await User.findOne({ email: userData.kakao_account.email });
+    if (!user) {
+      user = await User.create({
+        name: userData.kakao_account.profile.nickname,
+        username: userData.id,
+        email: userData.kakao_account.email,
+        password: "",
+        socialOnly: true,
+        location: "",
+      });
+      req.session.loggedIn = true;
+      req.session.user = user;
+      return res.redirect("/");
+    }
+  } else {
+    return res.redirect("/login");
+  }
 };
 export const startGithubLogin = (req, res) => {
   const baseUrl = "https://github.com/login/oauth/authorize";
@@ -167,6 +197,91 @@ export const logout = (req, res) => {
   return res.redirect("/");
 };
 
-export const edit = (req, res) => res.send("Edit My Profile");
+export const getEdit = (req, res) => {
+  return res.render("edit-profile", { pageTitle: "Edit Profile" });
+};
+export const postEdit = async (req, res) => {
+  const {
+    session: {
+      user: { _id, avatarUrl },
+    },
+    body: { name, email, username, location },
+    file,
+  } = req;
+  const exists = await User.exists({
+    name,
+    email,
+    location,
+    username,
+  });
+  if (exists) {
+    return res.status(400).render("edit-profile", {
+      pageTitle: "Edit profile",
+      errorMessage: "이미 존재합니다.",
+    });
+  }
+  const updatedUser = await User.findByIdAndUpdate(
+    _id,
+    {
+      avatarUrl: file ? file.path : avatarUrl,
+      name,
+      email,
+      location,
+      username,
+    },
+    { new: true }
+  );
+  req.session.user = updatedUser;
+  return res.redirect("/users/edit");
+};
+
+export const getChangePassword = (req, res) => {
+  if (req.session.user.socialOnly === true) {
+    return res.redirect("/");
+  }
+  return res.render("users/change-password", {
+    pageTitle: "Change Password",
+  });
+};
+export const postChangePassword = async (req, res) => {
+  const {
+    session: {
+      user: { _id },
+    },
+    body: { oldPassword, newPassword, newpasswordconfirm },
+  } = req;
+  const user = await User.findById(_id);
+  const ok = await bcrypt.compare(oldPassword, user.password);
+
+  if (!ok) {
+    return res.status(400).render("users/change-password", {
+      pageTitle: "Change Password",
+      errorMessage: "이전 비밀번호가 일치하지 않습니다.",
+    });
+  }
+  if (newPassword !== newpasswordconfirm) {
+    return res.status(400).render("users/change-password", {
+      pageTitle: "Change Password",
+      errorMessage: "새로운 비밀번호가 일치하지 않습니다.",
+    });
+  }
+  user.password = newPassword;
+  await user.save();
+  return res.redirect("/users/logout");
+};
+
+export const see = async (req, res) => {
+  const { id } = req.params;
+  const user = await User.findById(id).populate("videos");
+  const video = await Video.findById(id).populate("owner");
+  if (!user) {
+    res.status(404).render("404", { pageTitle: "User is not found" });
+  }
+  return res.render("users/myprofile", {
+    pageTitle: user.name,
+    user,
+    video,
+  });
+};
+
 export const remove = (req, res) => res.send("Delete My Profile");
-export const see = (req, res) => res.send("See User");
