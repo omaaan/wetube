@@ -237,6 +237,7 @@ export const postEdit = async (req, res) => {
 
 export const getChangePassword = (req, res) => {
   if (req.session.user.socialOnly === true) {
+    req.flash("error", "비밀번호가 존재하지 않습니다");
     return res.redirect("/");
   }
   return res.render("users/change-password", {
